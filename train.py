@@ -18,7 +18,7 @@ print("PyTorch Version: ",torch.__version__)
 print("Torchvision Version: ",torchvision.__version__)
 
 from config import Config
-from model import Encoder, Decoder
+from model import WNet
 
 config = Config()
 
@@ -41,6 +41,7 @@ val_xform = transforms.Compose([
     transforms.ToTensor()
 ])
 
+#TODO: Load segmentation maps too
 train_dataset = datasets.ImageFolder(os.path.join(config.data_dir, "train"), train_xform)
 val_dataset   = datasets.ImageFolder(os.path.join(config.data_dir, "test"),  val_xform)
 
@@ -53,13 +54,12 @@ val_dataloader   = torch.utils.data.DataLoader(val_dataset,   batch_size=config.
 #          Model Setup           #
 ###################################
 
-encoder  = Encoder().cuda()
-decoder  = Decoder().cuda()
+autoencoder = WNet().cuda()
 
-encoder_optimizer  = torch.optim.Adam(encoder.parameters())
-full_optimizer   = torch.optim.Adam(list(encoder.parameters()) + list(decoder.parameters()))
+optimizer = torch.optim.Adam(autoencoder.parameters())
 
 # TODO: Print model architecture
+print(autoencoder)
 
 def enumerate_params():
 	num_params = 0
@@ -79,7 +79,7 @@ def reconstruction_loss(x, x_prime):
 	binary_cross_entropy = F.binary_cross_entropy(x_prime, x, reduction='sum')
 	return binary_cross_entropy
 
-#TODO: Implement
+#TODO: Implement soft n-cut loss
 def soft_n_cut_loss(segmentations):
     return 0
 
@@ -88,8 +88,7 @@ def soft_n_cut_loss(segmentations):
 #          Training Loop          #
 ###################################
 
-encoder.train()
-decoder.train()
+autoencoder.train()
 
 for epoch in range(num_epochs):
     running_loss = 0.0
@@ -104,8 +103,7 @@ for epoch in range(num_epochs):
 
         optimizer.zero_grad()
 
-        segmentations = encoder(inputs)
-        reconstructions = decoder(segmentations)
+        segmentations, reconstructions = autoencoder(inputs)
 
         l_soft_n_cut     = soft_n_cut_loss(segmentations)
         l_reconstruction = reconstruction_loss(inputs, reconstructions)

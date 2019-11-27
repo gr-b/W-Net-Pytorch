@@ -53,8 +53,8 @@ class ConvModule(nn.Module):
         return self.module(x)
 
 class BaseNet(nn.Module): # 1 U-net
-    def __init__(input_channels, output_channels):
-        super(BaseEncoder, self).__init__()
+    def __init__(self, input_channels, output_channels):
+        super(BaseNet, self).__init__()
 
         self.module1 = nn.Sequential(
             nn.Conv2d(input_channels, 64, 3, padding=1),
@@ -129,12 +129,12 @@ class WNet(nn.Module):
         self.softmax = nn.Softmax2d()
         self.U_decoder = BaseNet(input_channels=config.k, output_channels=3)
 
-    def forward_encoder(self, x)
+    def forward_encoder(self, x):
         x9 = self.U_encoder(x)
         segmentations = self.softmax(x9)
         return segmentations
 
-    def forward_decoder(self, segmentations)
+    def forward_decoder(self, segmentations):
         x18 = self.U_decoder(segmentations)
         return x18
 

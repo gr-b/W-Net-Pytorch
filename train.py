@@ -95,7 +95,7 @@ for epoch in range(num_epochs):
     running_loss = 0.0
     for i, data in enumerate(train_dataloader, 0):
         inputs, labels = data
-        if showdata:
+        if config.showdata:
             plt.imshow(inputs[0].permute(1, 2, 0))
             plt.show()
 

@@ -49,217 +49,93 @@ class ConvModule(nn.Module):
     def forward(self, x):
         return self.module(x)
 
-class EncoderModule(nn.Module):
-    def __init__(self, input_dim, output_dim):
-        super(EncoderModule, self).__init__()
-
-        self.pool = nn.MaxPool2d(2, 2)
-        self.module = ConvModule(input_dim, output_dim)
-
-    def forward(self, x):
-        return self.module(x)
-
-class DecoderModule(nn.Module):
-    def __init__(self, input_dim, output_dim):
-        super(EncoderModule, self).__init__()
-
-        self.module = nn.Sequential(
-            nn.Conv2d(input_dim, output_dim, 1), # Pointwise (1x1) through all channels
-            nn.Conv2d(output_dim, output_dim, 3, padding=1, groups=output_dim), # Depthwise (3x3) through each channel
-            nn.ReLU(),
-            nn.BatchNorm2d(output_dim),
-            nn.Conv2d(output_dim, output_dim, 1),
-            nn.Conv2d(output_dim, output_dim, 3, padding=1, groups=output_dim),
-            nn.ReLU(),
-            nn.BatchNorm2d(output_dim),
-            nn.ConvTranspose2d(output_dim, output_dim, 2),
-        )
-
-    def forward(self, x):
-        return self.module(x)
-
-class BaseEncoder(nn.Module):
-    def __init__(self):
+class BaseNet(nn.Module): # 1 U-net
+    def __init__(input_channels, output_channels):
         super(BaseEncoder, self).__init__()
 
         self.module1 = nn.Sequential(
-            nn.Conv2d(3, 64, 3, padding=1),
+            nn.Conv2d(input_channels, 64, 3, padding=1),
+            nn.ReLU(),
+            nn.BatchNorm2d(64),
+            nn.Conv2d(64, 64, 3, padding=1),
+            nn.ReLU(),
+            nn.BatchNorm2d(64))
+
+        self.module12pool = nn.MaxPool2d(2, 2)
+        self.module2 = ConvModule(64, 128)
+        self.module23pool = nn.MaxPool2d(2, 2)
+        self.module3 = ConvModule(128, 256)
+        self.module34pool = nn.MaxPool2d(2, 2)
+        self.module4 = ConvModule(256, 512)
+        self.module45pool = nn.MaxPool2d(2, 2)
+        self.module5 = ConvModule(512, 1024)
+
+        # Where does the halve features happen on the expansive path?
+
+        self.module56upconv = nn.ConvTranspose2d(1024, 1024, 2)
+        self.module6 = ConvModule(1024+512, 512)
+        self.module67upconv = nn.ConvTranspose2d(512, 512, 2)
+        self.module7 = ConvModule(512+256, 256)
+        self.module78upconv = nn.ConvTranspose2d(256, 256, 2)
+        self.module8 = ConvModule(256+128, 128)
+
+        self.module89upconv = nn.ConvTranspose2d(128, 128, 2)
+
+        self.module9 = nn.Sequential(
+            nn.Conv2d(128+64, 64, 3, padding=1),
             nn.ReLU(),
             nn.BatchNorm2d(64),
             nn.Conv2d(64, 64, 3, padding=1),
             nn.ReLU(),
             nn.BatchNorm2d(64),
+            nn.Conv2d(64, output_channels, 1), # No padding on pointwise
+            nn.ReLU(),
         )
-
-        self.module2 = EncoderModule(64, 128)
-        self.module3 = EncoderModule(128, 256)
-        self.module4 = EncoderModule(256, 512)
-        self.module5 = EncoderModule(512, 1024)
-        self.module5upconv = nn.ConvTranspose2d(1024, 1024, 2)
-
-        self.module6 = DecoderModule(1024, 512)
-        self.module7 = DecoderModule(512, 256)
-        self.module8 = DecoderModule(256, 128)
-
-        self.module9 = nn.Sequential(...)
+        self.softmax = nn.Softmax2d()
 
 
-
-    def forward(self, x):
+    def forward(self, x1):
         x1 = self.module1(x)
-        x2 = self.module2(x1)
-        x3 = self.module3(x2)
-        x4 = self.module4(x3)
-        x5input = self.module5upconv(x4)
+        x2 = self.module2(self.module12pool(x1))
+        x3 = self.module3(self.module23pool(x2))
+        x4 = self.module4(self.module34pool(x3))
+        x5 = self.module5(self.module45pool(x4))
 
-
-
-        return
-
-class UNet(nn.Module):
-    def __init__(self):
-        super(UNet, self).__init__()
-
-        # TODO: Padding so that it stays as 224,112,etc
-        # TODO: Add batch norm after each relu
-
-        # Contracting path
-        self.module2 = nn.Sequential(
-            nn.MaxPool2d(2, 2),
-            nn.Conv2d(64, 128, 3),  # TODO: Make this conv separable
-            nn.ReLU(),
-            nn.BatchNorm2d(128),
-            nn.Conv2d(128, 128, 3), # TODO: Make this conv separable
-            nn.ReLU(),
-            nn.BatchNorm2d(128),
+        x6 = self.module6(
+            torch.cat((x4, self.module56upconv(x5)), config.cat_dim)
+        )
+        x7 = self.module7(
+            torch.cat((x3, self.module67upconv(x6)), config.cat_dim)
+        )
+        x8 = self.module8(
+            torch.cat((x2, self.module78upconv(x7)), config.cat_dim)
+        )
+        x9 = self.module9(
+            torch.cat((x1, self.module89upconv(x8)), config.cat_dim)
         )
 
-        self.module3 = nn.Sequential(
-            nn.MaxPool2d(2, 2),
-            nn.Conv2d(128, 256, 3), # TODO: Make this conv separable
-            nn.ReLU(),
-            nn.BatchNorm2d(256),
-            nn.Conv2d(256, 256, 3), # TODO: Make this conv separable
-            nn.ReLU(),
-            nn.BatchNorm2d(256),
-        )
-
-        self.module4 = nn.Sequential(
-            nn.MaxPool2d(2, 2),
-            nn.Conv2d(256, 512, 3), # TODO: Make this conv separable
-            nn.ReLU(),
-            nn.BatchNorm2d(512),
-            nn.Conv2d(512, 512, 3), # TODO: Make this conv separable
-            nn.ReLU(),
-            nn.BatchNorm2d(512),
-        )
-
-        self.module5 = nn.Sequential(
-            nn.MaxPool2d(2, 2),
-            nn.Conv2d(512, 1024, 3), # TODO: Make this conv separable
-            nn.ReLU(),
-            nn.BatchNorm2d(1024),
-            nn.Conv2d(1024, 1024, 3), # TODO: Make this conv separable
-            nn.ReLU(),
-            nn.BatchNorm2d(1024),
-        )
-
-        #Expanding path
-        self.module6 = nn.Sequential(
-            nn.ConvTranspose2d(1024, 1024, 2), # Upconv --> Do we need to put anything after this?
-            nn.Conv2d(1024, 512, 3), # TODO: Make this conv separable
-            nn.ReLU(),
-            nn.BatchNorm2d(512),
-            nn.Conv2d(512, 512, 3), # TODO: Make this conv separable
-            nn.ReLU(),
-            nn.BatchNorm2d(512),
-        )
-
-        self.module7 = nn.Sequential(
-            nn.ConvTranspose2d(512, 512, 2), # Upconv --> Do we need to put anything after this?
-            nn.Conv2d(512, 256, 3), # TODO: Make this conv separable
-            nn.ReLU(),
-            nn.BatchNorm2d(256),
-            nn.Conv2d(256, 256, 3), # TODO: Make this conv separable
-            nn.ReLU(),
-            nn.BatchNorm2d(256),
-        )
-
-        self.module8 = nn.Sequential(
-            nn.ConvTranspose2d(256, 256, 2), # Upconv --> Do we need to put anything after this?
-            nn.Conv2d(256, 128, 3), # TODO: Make this conv separable
-            nn.ReLU(),
-            nn.BatchNorm2d(128),
-            nn.Conv2d(128, 128, 3), # TODO: Make this conv separable
-            nn.ReLU(),
-            nn.BatchNorm2d(128),
-            nn.ConvTranspose2d(128, 64, 2),
-        )
-
-
-    def forward(self, x):
-
-        return self.mean_head(x), self.std_head(x)
-
-
-class Encoder(nn.Module):
-    def __init__(self):
-        super(Encoder, self).__init__()
-
-        self.module1 = nn.Sequential(
-            nn.Conv2d(3, 64, 3),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, 3),
-            nn.ReLU(),
-        )
-
-        self.Uenc = UNet()
-
-        self.module9 = nn.Sequential(
-            nn.Conv2d(128, 64, 3),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, 3),
-            nn.ReLU(),
-            nn.Conv2d(64, config.k, 1), # TODO: Make this conv separable
-            nn.ReLU(),
-            nn.Softmax2d(dim=0), # Is this softmax dim correct? (want to softmax across K dimension)
-        )
-
-    def forward(self, x): # x is (3 channels 224x224)
-        module1_out = self.module1(x) # (64x224x224)
-        u_enc_out = self.Uenc(module1out) # (64x112x112)
-
-        # Add in Skip-connection
-        module9in = torch.cat((module1_out, u_enc_out), 0) # concat along channel dimension (0)
-
-        segmentations = self.module9(module9in) # (K x 224 x 224)
+        segmentations = self.softmax(x9)
         return segmentations
 
-class Decoder(nn.Module):
+
+class WNet(nn.Module):
     def __init__(self):
-        super(Decoder, self).__init__()
+        super(WNet, self).__init__()
 
-        self.module10 = nn.Sequential(
-            nn.Conv2d(config.k, 64, 3),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, 3),
-            nn.ReLU(),
-        )
+        self.U_encoder = BaseNet(input_channels=3, output_channels=config.k)
+        self.softmax = nn.Softmax2d()
+        self.U_decoder = BaseNet(input_channels=config.k, output_channels=3)
 
-        self.Udec = UNet()
+    def forward_encoder(self, x)
+        x9 = self.U_encoder(x)
+        segmentations = self.softmax(x9)
+        return segmentations
 
-        self.module9 = nn.Sequential(
-            nn.ConvTranspose2d(128, 128, 2), # Upconv --> Do we need to put anything after this?
-            nn.Conv2d(128, 64, 3),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, 3),
-            nn.ReLU(),
-            nn.Conv2d(64, 3, 1), # TODO: Make this conv separable
-            nn.ReLU(),
-            nn.Softmax(dim=1), # Is this softmax dim correct?
-        )
+    def forward_decoder(self, segmentations)
+        x18 = self.U_decoder(segmentations)
+        return x18
 
-
-    def forward(self, z):
-
-        return self.sig(x)
+    def forward(self, x): # x is (3 channels 224x224)
+        segmentations = self.forward_encoder(x)
+        x_prime       = self.forward_decoder(segmentations)
+        return segmentations, x_prime

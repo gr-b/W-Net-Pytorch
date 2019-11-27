@@ -6,4 +6,4 @@ class Config():
         self.num_epochs = 50
         self.data_dir = "./datasets/BSDS300/images/" # Directory of images
         self.showdata = False # Debug the data augmentation by showing the data we're training on.
-        self.cat_dim = 0 # Feature channel dimension
+        self.cat_dim = 1 # Feature channel dimension

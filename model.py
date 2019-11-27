@@ -75,14 +75,14 @@ class BaseNet(nn.Module): # 1 U-net
 
         # Where does the halve features happen on the expansive path?
 
-        self.module56upconv = nn.ConvTranspose2d(1024, 1024, 2)
+        self.module56upconv = nn.ConvTranspose2d(1024, 1024, 2, stride=2) # Stride of 2 makes it the right size
         self.module6 = ConvModule(1024+512, 512)
-        self.module67upconv = nn.ConvTranspose2d(512, 512, 2)
+        self.module67upconv = nn.ConvTranspose2d(512, 512, 2, stride=2)
         self.module7 = ConvModule(512+256, 256)
-        self.module78upconv = nn.ConvTranspose2d(256, 256, 2)
+        self.module78upconv = nn.ConvTranspose2d(256, 256, 2, stride=2)
         self.module8 = ConvModule(256+128, 128)
 
-        self.module89upconv = nn.ConvTranspose2d(128, 128, 2)
+        self.module89upconv = nn.ConvTranspose2d(128, 128, 2, stride=2)
 
         self.module9 = nn.Sequential(
             nn.Conv2d(128+64, 64, 3, padding=1),
@@ -97,7 +97,7 @@ class BaseNet(nn.Module): # 1 U-net
         self.softmax = nn.Softmax2d()
 
 
-    def forward(self, x1):
+    def forward(self, x):
         x1 = self.module1(x)
         x2 = self.module2(self.module12pool(x1))
         x3 = self.module3(self.module23pool(x2))

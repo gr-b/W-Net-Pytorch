@@ -63,7 +63,7 @@ print(autoencoder)
 
 def enumerate_params():
 	num_params = 0
-	for model in [enc, dec]:
+	for model in [autoencoder]:
 		for param in model.parameters():
 			if param.requires_grad:
 				num_params += param.numel()
@@ -90,7 +90,7 @@ def soft_n_cut_loss(segmentations):
 
 autoencoder.train()
 
-for epoch in range(num_epochs):
+for epoch in range(config.num_epochs):
     running_loss = 0.0
     for i, data in enumerate(train_dataloader, 0):
         inputs, labels = data

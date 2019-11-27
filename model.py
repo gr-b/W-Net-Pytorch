@@ -18,7 +18,12 @@ layers.
 The input of each module in the contracting path is also bypassed to the
 output of its corresponding module in the expansive path
 
+we double the number of feature channels at each downsampling step
+We halve the number of feature channels at each upsampling step
+
 '''
+
+# NOTE: batch norm is up for debate
 
 # NOTE: introducing skip-connections increases the number of channels into each module (I think)
 
@@ -35,32 +40,40 @@ class UNet(nn.Module):
             nn.MaxPool2d(2, 2),
             nn.Conv2d(64, 128, 3),  # TODO: Make this conv separable
             nn.ReLU(),
+            nn.BatchNorm2d(128),
             nn.Conv2d(128, 128, 3), # TODO: Make this conv separable
             nn.ReLU(),
+            nn.BatchNorm2d(128),
         )
 
         self.module3 = nn.Sequential(
             nn.MaxPool2d(2, 2),
             nn.Conv2d(128, 256, 3), # TODO: Make this conv separable
             nn.ReLU(),
+            nn.BatchNorm2d(256),
             nn.Conv2d(256, 256, 3), # TODO: Make this conv separable
             nn.ReLU(),
+            nn.BatchNorm2d(256),
         )
 
         self.module4 = nn.Sequential(
             nn.MaxPool2d(2, 2),
             nn.Conv2d(256, 512, 3), # TODO: Make this conv separable
             nn.ReLU(),
+            nn.BatchNorm2d(512),
             nn.Conv2d(512, 512, 3), # TODO: Make this conv separable
             nn.ReLU(),
+            nn.BatchNorm2d(512),
         )
 
         self.module5 = nn.Sequential(
             nn.MaxPool2d(2, 2),
             nn.Conv2d(512, 1024, 3), # TODO: Make this conv separable
             nn.ReLU(),
+            nn.BatchNorm2d(1024),
             nn.Conv2d(1024, 1024, 3), # TODO: Make this conv separable
             nn.ReLU(),
+            nn.BatchNorm2d(1024),
         )
 
         #Expanding path
@@ -68,24 +81,31 @@ class UNet(nn.Module):
             nn.ConvTranspose2d(1024, 1024, 2), # Upconv --> Do we need to put anything after this?
             nn.Conv2d(1024, 512, 3), # TODO: Make this conv separable
             nn.ReLU(),
+            nn.BatchNorm2d(512),
             nn.Conv2d(512, 512, 3), # TODO: Make this conv separable
             nn.ReLU(),
+            nn.BatchNorm2d(512),
         )
 
         self.module7 = nn.Sequential(
             nn.ConvTranspose2d(512, 512, 2), # Upconv --> Do we need to put anything after this?
             nn.Conv2d(512, 256, 3), # TODO: Make this conv separable
             nn.ReLU(),
+            nn.BatchNorm2d(256),
             nn.Conv2d(256, 256, 3), # TODO: Make this conv separable
             nn.ReLU(),
+            nn.BatchNorm2d(256),
         )
 
         self.module8 = nn.Sequential(
             nn.ConvTranspose2d(256, 256, 2), # Upconv --> Do we need to put anything after this?
             nn.Conv2d(256, 128, 3), # TODO: Make this conv separable
             nn.ReLU(),
+            nn.BatchNorm2d(128),
             nn.Conv2d(128, 128, 3), # TODO: Make this conv separable
             nn.ReLU(),
+            nn.BatchNorm2d(128),
+            nn.ConvTranspose2d(128, 64, 2),
         )
 
 
@@ -108,25 +128,24 @@ class Encoder(nn.Module):
         self.Uenc = UNet()
 
         self.module9 = nn.Sequential(
-            nn.ConvTranspose2d(128, 128, 2), # Upconv --> Do we need to put anything after this?
             nn.Conv2d(128, 64, 3),
             nn.ReLU(),
             nn.Conv2d(64, 64, 3),
             nn.ReLU(),
             nn.Conv2d(64, config.k, 1), # TODO: Make this conv separable
             nn.ReLU(),
-            nn.Softmax(dim=1), # Is this softmax dim correct?
+            nn.Softmax2d(dim=0), # Is this softmax dim correct? (want to softmax across K dimension)
         )
 
     def forward(self, x): # x is (3 channels 224x224)
         module1_out = self.module1(x) # (64x224x224)
-        u_enc_out = self.Uenc(module1out) # (128x112x112)
+        u_enc_out = self.Uenc(module1out) # (64x112x112)
 
         # Add in Skip-connection
-        module9in = torch.cat((module1_out, u_enc_out), 0) # Assumes tensor shape (channels x width x height)
-                                                            # Should now be (128 channels x )
+        module9in = torch.cat((module1_out, u_enc_out), 0) # concat along channel dimension (0)
 
-        return self.mean_head(x), self.std_head(x)
+        segmentations = self.module9(module9in) # (K x 224 x 224)
+        return segmentations
 
 class Decoder(nn.Module):
     def __init__(self):

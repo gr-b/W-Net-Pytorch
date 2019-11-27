@@ -118,7 +118,13 @@ class Encoder(nn.Module):
             nn.Softmax(dim=1), # Is this softmax dim correct?
         )
 
-    def forward(self, x):
+    def forward(self, x): # x is (3 channels 224x224)
+        module1_out = self.module1(x) # (64x224x224)
+        u_enc_out = self.Uenc(module1out) # (128x112x112)
+
+        # Add in Skip-connection
+        module9in = torch.cat((module1_out, u_enc_out), 0) # Assumes tensor shape (channels x width x height)
+                                                            # Should now be (128 channels x )
 
         return self.mean_head(x), self.std_head(x)
 

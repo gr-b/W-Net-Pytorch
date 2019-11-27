@@ -31,6 +31,9 @@ We halve the number of feature channels at each upsampling step
 # Do we want non-linearity between pointwise and depthwise (separable) conv?
 # Do we want non-linearity after upconv?
 
+# Note: I manually make each conv layer take half as many channels to accommodate the skip-connections
+# As opposed to convolving down the number of channels in the forward pass first. I think this is how it is intended
+
 class ConvModule(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(ConvModule, self).__init__()

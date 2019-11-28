@@ -72,8 +72,6 @@ class BaseNet(nn.Module): # 1 U-net
         self.module45pool = nn.MaxPool2d(2, 2)
         self.module5 = ConvModule(512, 1024)
 
-        # Where does the halve features happen on the expansive path?
-
         self.module56upconv = nn.ConvTranspose2d(1024, 1024, 2, stride=2) # Stride of 2 makes it the right size
         self.module6 = ConvModule(1024+512, 512)
         self.module67upconv = nn.ConvTranspose2d(512, 512, 2, stride=2)

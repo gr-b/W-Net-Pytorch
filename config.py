@@ -10,3 +10,6 @@ class Config():
         self.useBatchNorm = False
         self.showSegmentationProgress = True
         self.segmentationProgressDir = './latent_images/'
+        self.epochShuffle = True
+        # False if we want to see image progress (but then SGD doesn't work right;
+        # same batches every time)

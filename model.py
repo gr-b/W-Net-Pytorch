@@ -111,9 +111,6 @@ class BaseNet(nn.Module): # 1 U-net
         self.module9 = nn.Sequential(*layers)
 
 
-        self.softmax = nn.Softmax2d()
-
-
     def forward(self, x):
         x1 = self.module1(x)
         x2 = self.module2(self.module12pool(x1))
@@ -134,7 +131,7 @@ class BaseNet(nn.Module): # 1 U-net
             torch.cat((x1, self.module89upconv(x8)), config.cat_dim)
         )
 
-        segmentations = self.softmax(x9)
+        segmentations = x9
         return segmentations
 
 
@@ -145,6 +142,7 @@ class WNet(nn.Module):
         self.U_encoder = BaseNet(input_channels=3, output_channels=config.k)
         self.softmax = nn.Softmax2d()
         self.U_decoder = BaseNet(input_channels=config.k, output_channels=3)
+        self.sigmoid = nn.Sigmoid()
 
     def forward_encoder(self, x):
         x9 = self.U_encoder(x)
@@ -153,7 +151,8 @@ class WNet(nn.Module):
 
     def forward_decoder(self, segmentations):
         x18 = self.U_decoder(segmentations)
-        return x18
+        reconstructions = self.sigmoid(x18)
+        return reconstructions
 
     def forward(self, x): # x is (3 channels 224x224)
         segmentations = self.forward_encoder(x)

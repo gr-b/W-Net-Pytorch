@@ -37,7 +37,7 @@ class ConvModule(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(ConvModule, self).__init__()
 
-        self.module = nn.Sequential(
+        layers = [
             nn.Conv2d(input_dim, output_dim, 1), # Pointwise (1x1) through all channels
             nn.Conv2d(output_dim, output_dim, 3, padding=1, groups=output_dim), # Depthwise (3x3) through each channel
             nn.ReLU(),
@@ -46,7 +46,12 @@ class ConvModule(nn.Module):
             nn.Conv2d(output_dim, output_dim, 3, padding=1, groups=output_dim),
             nn.ReLU(),
             nn.BatchNorm2d(output_dim),
-        )
+        ]
+
+        if not config.useBatchNorm:
+            layers = [layer for layer in layers if not isinstance(layer, nn.BatchNorm2d)]
+
+        self.module = nn.Sequential(*layers)
 
     def forward(self, x):
         return self.module(x)
@@ -55,13 +60,20 @@ class BaseNet(nn.Module): # 1 U-net
     def __init__(self, input_channels, output_channels):
         super(BaseNet, self).__init__()
 
-        self.module1 = nn.Sequential(
+        layers = [
             nn.Conv2d(input_channels, 64, 3, padding=1),
             nn.ReLU(),
             nn.BatchNorm2d(64),
             nn.Conv2d(64, 64, 3, padding=1),
             nn.ReLU(),
-            nn.BatchNorm2d(64))
+            nn.BatchNorm2d(64),
+        ]
+
+        if not config.useBatchNorm:
+            layers = [layer for layer in layers if not isinstance(layer, nn.BatchNorm2d)]
+
+        self.module1 = nn.Sequential(*layers)
+
 
         self.module12pool = nn.MaxPool2d(2, 2)
         self.module2 = ConvModule(64, 128)
@@ -81,7 +93,8 @@ class BaseNet(nn.Module): # 1 U-net
 
         self.module89upconv = nn.ConvTranspose2d(128, 128, 2, stride=2)
 
-        self.module9 = nn.Sequential(
+
+        layers = [
             nn.Conv2d(128+64, 64, 3, padding=1),
             nn.ReLU(),
             nn.BatchNorm2d(64),
@@ -90,7 +103,14 @@ class BaseNet(nn.Module): # 1 U-net
             nn.BatchNorm2d(64),
             nn.Conv2d(64, output_channels, 1), # No padding on pointwise
             nn.ReLU(),
-        )
+        ]
+
+        if not config.useBatchNorm:
+            layers = [layer for layer in layers if not isinstance(layer, nn.BatchNorm2d)]
+
+        self.module9 = nn.Sequential(*layers)
+
+
         self.softmax = nn.Softmax2d()
 
 

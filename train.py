@@ -13,18 +13,19 @@ import torchvision
 from torchvision import datasets, models, transforms
 import matplotlib.pyplot as plt
 import time
-import os
+import os, shutil
 import copy
 print("PyTorch Version: ",torch.__version__)
 print("Torchvision Version: ",torchvision.__version__)
 
 from config import Config
+import util
 from model import WNet
 
 config = Config()
 
-device0 = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
-#device1 = torch.device("cuda:1")
+# NOTE: We're not currently using this variable
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 ###################################
 # Image loading and preprocessing #
@@ -48,27 +49,16 @@ val_dataset   = datasets.ImageFolder(os.path.join(config.data_dir, "test"),  val
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=config.batch_size, num_workers=4, shuffle=True)
 val_dataloader   = torch.utils.data.DataLoader(val_dataset,   batch_size=config.batch_size, num_workers=4, shuffle=True)
 
-
+util.clear_progress_dir()
 
 ###################################
-#          Model Setup           #
+#          Model Setup            #
 ###################################
 
 autoencoder = WNet().cuda()
-
 optimizer = torch.optim.Adam(autoencoder.parameters())
-
-# TODO: Print model architecture
 print(autoencoder)
-
-def enumerate_params():
-	num_params = 0
-	for model in [autoencoder]:
-		for param in model.parameters():
-			if param.requires_grad:
-				num_params += param.numel()
-	print(f"Total trainable model parameters: {num_params}")
-enumerate_params()
+util.enumerate_params([autoencoder])
 
 
 ###################################
@@ -114,5 +104,15 @@ for epoch in range(config.num_epochs):
 
         # print statistics
         running_loss += loss.item()
+
+        if config.showSegmentationProgress and i == 0: # If it's the first batch in the epoch
+            #import ipdb; ipdb.set_trace()
+            # Get the first example from the batch.
+
+            segmentation = segmentations[0]
+            pixels = torch.argmax(segmentation, axis=0) / config.k # to [0,1]
+            plt.imshow(pixels.detach().cpu()) # TODO: show image on a separate thread
+            plt.show()
+
     epoch_loss = running_loss / len(train_dataloader.dataset)
     print(f"Epoch {epoch} loss: {epoch_loss:.6f}")

@@ -8,3 +8,5 @@ class Config():
         self.showdata = False # Debug the data augmentation by showing the data we're training on.
         self.cat_dim = 1 # Feature channel dimension
         self.useBatchNorm = False
+        self.showSegmentationProgress = True
+        self.segmentationProgressDir = './latent_images/'

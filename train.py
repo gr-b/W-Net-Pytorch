@@ -33,12 +33,12 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # For now, data augmentation must not introduce any missing pixels TODO: Add data augmentation noise
 train_xform = transforms.Compose([
-    transforms.RandomCrop(config.input_size), # For now, cropping down to 224
-    transforms.RandomHorizontalFlip(),
+    transforms.RandomCrop(config.input_size+config.variationalTranslation), # For now, cropping down to 224
+    transforms.RandomHorizontalFlip(), # TODO: Add colorjitter, random erasing
     transforms.ToTensor()
 ])
-val_xform = transforms.Compose([
-    transforms.RandomCrop(config.input_size), # For now, cropping down to 224
+val_xform = transforms.Compose([                # NOTE: Take varTran out for testing
+    transforms.RandomCrop(config.input_size+config.variationalTranslation), # For now, cropping down to 224
     transforms.ToTensor()
 ])
 
@@ -81,11 +81,16 @@ def soft_n_cut_loss(segmentations):
 autoencoder.train()
 
 progress_images, _ = next(iter(val_dataloader))
+progress_images, progress_expected = util.transform_to_expected(progress_images)
 
 for epoch in range(config.num_epochs):
     running_loss = 0.0
     for i, data in enumerate(train_dataloader, 0):
         inputs, labels = data
+
+        # Handle variational translation
+        inputs, outputs_expected = util.transform_to_expected(inputs)
+
         if config.showdata:
             print(inputs.shape)
             print(inputs[0])
@@ -99,10 +104,11 @@ for epoch in range(config.num_epochs):
 
         segmentations, reconstructions = autoencoder(inputs)
 
-        import ipdb; ipdb.set_trace()
 
         l_soft_n_cut     = soft_n_cut_loss(segmentations)
-        l_reconstruction = reconstruction_loss(inputs, reconstructions)
+        l_reconstruction = reconstruction_loss(
+            inputs if config.variationalTranslation == 0 else outputs_expected, reconstructions
+        )
 
         loss = (l_reconstruction + l_soft_n_cut)
         loss.backward(retain_graph=True)
@@ -111,21 +117,23 @@ for epoch in range(config.num_epochs):
         # print statistics
         running_loss += loss.item()
 
-        if config.showSegmentationProgress and i == 0: # If it's the first batch in the epoch
-            #import ipdb; ipdb.set_trace()
+        if config.showSegmentationProgress and i == 0: # If first batch in epoch
             segmentations, reconstructions = autoencoder(progress_images.cuda())
             optimizer.zero_grad() # Don't change gradient on test image
 
             # Get the first example from the batch.
-            plt.imshow(progress_images[0].permute(1, 2, 0))
-            plt.savefig(os.path.join(config.segmentationProgressDir, str(epoch)+"_.png"))
-
             segmentation = segmentations[0]
-            pixels = torch.argmax(segmentation, axis=0) / config.k # to [0,1]
-            plt.imshow(pixels.detach().cpu(), alpha=0.9) # TODO: show image on a separate thread
+            pixels = torch.argmax(segmentation, axis=0).float() / config.k # to [0,1]
+
+            f, axes = plt.subplots(4, 1, figsize=(8,8))
+            axes[0].imshow(progress_images[0].permute(1, 2, 0))
+            axes[1].imshow(pixels.detach().cpu())
+            axes[2].imshow(reconstructions[0].detach().cpu().permute(1, 2, 0))
+            axes[3].imshow(progress_expected[0].detach().cpu().permute(1, 2, 0))
             plt.savefig(os.path.join(config.segmentationProgressDir, str(epoch)+".png"))
-            plt.imshow(reconstructions[0].detach().cpu().permute(1, 2, 0))
-            plt.savefig(os.path.join(config.segmentationProgressDir, str(epoch)+"__.png"))
+            plt.close(f)
 
     epoch_loss = running_loss / len(train_dataloader.dataset)
     print(f"Epoch {epoch} loss: {epoch_loss:.6f}")
+
+torch.save(autoencoder.state_dict(), "./model.params")

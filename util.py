@@ -1,7 +1,14 @@
 import os, shutil
 from config import Config
+import torch
+from torchvision import transforms
 
 config = Config()
+
+randomCrop = transforms.RandomCrop(config.input_size)
+centerCrop = transforms.CenterCrop(config.input_size)
+toTensor   = transforms.ToTensor()
+toPIL      = transforms.ToPILImage()
 
 # Clear progress images directory
 def clear_progress_dir():
@@ -19,3 +26,11 @@ def enumerate_params(models):
 			if param.requires_grad:
 				num_params += param.numel()
 	print(f"Total trainable model parameters: {num_params}")
+
+
+def transform_to_expected(inputs):
+    inputs = [toPIL(img) for img in inputs]
+    if config.variationalTranslation > 0:
+        outputs_expected = torch.stack([toTensor(randomCrop(img)) for img in inputs]).cuda()
+    inputs = torch.stack([toTensor(centerCrop(img)) for img in inputs])
+    return inputs, outputs_expected

@@ -21,7 +21,7 @@ print("PyTorch Version: ",torch.__version__)
 from config import Config
 import util
 from model import WNet
-from ncut_weight_dataset import NCutWeightDataset
+from autoencoder_dataset import AutoencoderDataset
 
 config = Config()
 
@@ -42,13 +42,13 @@ val_xform = transforms.Compose([                # NOTE: Take varTran out for tes
 
 #TODO: Load segmentation maps too
 #train_dataset = datasets.ImageFolder(os.path.join(config.data_dir, "train"), train_xform)
-train_dataset = NCutWeightDataset(os.path.join(config.data_dir, "train"), train_xform)
-val_dataset   = datasets.ImageFolder(os.path.join(config.data_dir, "test"),  val_xform)
+train_dataset = AutoencoderDataset("train", train_xform)
+val_dataset   = AutoencoderDataset("test", val_xform)
 
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=config.batch_size, num_workers=4, shuffle=config.epochShuffle)
 val_dataloader   = torch.utils.data.DataLoader(val_dataset,   batch_size=1, num_workers=4, shuffle=config.epochShuffle)
 
-if True:
+if False:
     image, connections = next(iter(train_dataloader))
     import ipdb; ipdb.set_trace()
 
@@ -84,24 +84,21 @@ def soft_n_cut_loss(segmentations):
 
 autoencoder.train()
 
-progress_images, _ = next(iter(val_dataloader))
-progress_images, progress_expected = util.transform_to_expected(progress_images)
+progress_images, progress_expected = next(iter(val_dataloader))
 
 for epoch in range(config.num_epochs):
     running_loss = 0.0
-    for i, [inputs, weight_connections] in enumerate(train_dataloader, 0):
-
-        # Handle variational translation
-        inputs, outputs_expected = util.transform_to_expected(inputs)
+    for i, [inputs, outputs] in enumerate(train_dataloader, 0):
 
         if config.showdata:
             print(inputs.shape)
+            print(outputs.shape)
             print(inputs[0])
             plt.imshow(inputs[0].permute(1, 2, 0))
             plt.show()
 
-        inputs = inputs.cuda()
-        #labels = labels.cuda()
+        inputs  = inputs.cuda()
+        outputs = outputs.cuda()
 
         optimizer.zero_grad()
 
@@ -110,7 +107,8 @@ for epoch in range(config.num_epochs):
 
         l_soft_n_cut     = soft_n_cut_loss(segmentations)
         l_reconstruction = reconstruction_loss(
-            inputs if config.variationalTranslation == 0 else outputs_expected, reconstructions
+            inputs if config.variationalTranslation == 0 else outputs,
+            reconstructions
         )
 
         loss = (l_reconstruction + l_soft_n_cut)

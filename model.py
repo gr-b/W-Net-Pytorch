@@ -119,16 +119,16 @@ class BaseNet(nn.Module): # 1 U-net
         x5 = self.module5(self.module45pool(x4))
 
         x6 = self.module6(
-            torch.cat((x4, self.module56upconv(x5)), config.cat_dim)
+            torch.cat((x4, self.module56upconv(x5)), 1)
         )
         x7 = self.module7(
-            torch.cat((x3, self.module67upconv(x6)), config.cat_dim)
+            torch.cat((x3, self.module67upconv(x6)), 1)
         )
         x8 = self.module8(
-            torch.cat((x2, self.module78upconv(x7)), config.cat_dim)
+            torch.cat((x2, self.module78upconv(x7)), 1)
         )
         x9 = self.module9(
-            torch.cat((x1, self.module89upconv(x8)), config.cat_dim)
+            torch.cat((x1, self.module89upconv(x8)), 1)
         )
 
         segmentations = x9

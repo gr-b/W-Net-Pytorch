@@ -13,6 +13,16 @@ from config import Config
 
 config = Config()
 
+# The weight matrix w is a measure of the weight between each pixel and
+# every other pixel. so w[u][v] is a measure of
+#   (a) Distance between the brightness of the two pixels.
+#   (b) Distance in positon between the two pixels
+
+# The NCut loss metric is then:
+#   (a) association:    sum(weight_connection) * P(both pixels in the connection are in the class)
+#   (b) disassociation: sum(weight_connection) * P(first pixel is in the class)
+#   N Cut loss = disassociation / association
+
 class NCutsLoss(nn.Module):
     def __init__(self):
         super(NCutsLoss,self).__init__()

@@ -21,7 +21,7 @@ print("PyTorch Version: ",torch.__version__)
 from config import Config
 import util
 from model import WNet
-from weight_data_loader import WeightDataLoader
+from ncut_weight_dataset import NCutWeightDataset
 
 config = Config()
 
@@ -41,7 +41,8 @@ val_xform = transforms.Compose([                # NOTE: Take varTran out for tes
 ])
 
 #TODO: Load segmentation maps too
-train_dataset = datasets.ImageFolder(os.path.join(config.data_dir, "train"), train_xform)
+#train_dataset = datasets.ImageFolder(os.path.join(config.data_dir, "train"), train_xform)
+train_dataset = NCutWeightDataset(os.path.join(config.data_dir, "train"), train_xform)
 val_dataset   = datasets.ImageFolder(os.path.join(config.data_dir, "test"),  val_xform)
 
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=config.batch_size, num_workers=4, shuffle=config.epochShuffle)
@@ -83,7 +84,7 @@ progress_images, progress_expected = util.transform_to_expected(progress_images)
 
 for epoch in range(config.num_epochs):
     running_loss = 0.0
-    for i, [inputs, labels] in enumerate(train_dataloader, 0):
+    for i, [inputs, weight_connections] in enumerate(train_dataloader, 0):
 
         # Handle variational translation
         inputs, outputs_expected = util.transform_to_expected(inputs)
@@ -95,7 +96,7 @@ for epoch in range(config.num_epochs):
             plt.show()
 
         inputs = inputs.cuda()
-        labels = labels.cuda()
+        #labels = labels.cuda()
 
         optimizer.zero_grad()
 

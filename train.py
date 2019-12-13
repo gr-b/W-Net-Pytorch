@@ -22,6 +22,7 @@ from config import Config
 import util
 from model import WNet
 from autoencoder_dataset import AutoencoderDataset
+from soft_n_cut_loss import soft_n_cut_loss
 
 config = Config()
 
@@ -48,11 +49,6 @@ val_dataset   = AutoencoderDataset("test", val_xform)
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=config.batch_size, num_workers=4, shuffle=config.epochShuffle)
 val_dataloader   = torch.utils.data.DataLoader(val_dataset,   batch_size=1, num_workers=4, shuffle=config.epochShuffle)
 
-if False:
-    image, connections = next(iter(train_dataloader))
-    import ipdb; ipdb.set_trace()
-
-
 util.clear_progress_dir()
 
 ###################################
@@ -65,6 +61,7 @@ print(autoencoder)
 util.enumerate_params([autoencoder])
 
 
+
 ###################################
 #          Loss Criterion         #
 ###################################
@@ -72,10 +69,6 @@ util.enumerate_params([autoencoder])
 def reconstruction_loss(x, x_prime):
 	binary_cross_entropy = F.binary_cross_entropy(x_prime, x, reduction='sum')
 	return binary_cross_entropy
-
-#TODO: Implement soft n-cut loss
-def soft_n_cut_loss(segmentations):
-    return 0
 
 
 ###################################
@@ -105,7 +98,7 @@ for epoch in range(config.num_epochs):
         segmentations, reconstructions = autoencoder(inputs)
 
 
-        l_soft_n_cut     = soft_n_cut_loss(segmentations)
+        l_soft_n_cut     = soft_n_cut_loss(inputs, segmentations)
         l_reconstruction = reconstruction_loss(
             inputs if config.variationalTranslation == 0 else outputs,
             reconstructions

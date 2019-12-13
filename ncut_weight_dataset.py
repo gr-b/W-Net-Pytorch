@@ -5,6 +5,7 @@ from torchvision import transforms
 import os
 import numpy as np
 import glob
+import time
 
 from config import Config
 
@@ -25,16 +26,9 @@ file_ext = ".jpg"
 # Assumes images_dir (train directory) has a directory called "images"
 class NCutWeightDataset(Dataset):
     def __init__(self, images_dir, composed_transforms):
-        self.raw_data = []
         self.images_dir = os.path.join(images_dir, 'images')
-        self.transforms = composed_transforms
-
-        self.toGrayscale = transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.Grayscale(num_output_channels=1),
-            transforms.ToTensor()])
-
         self.image_list = self.get_image_list()
+        self.transforms = composed_transforms
 
     def __len__(self):
         return len(self.image_list)
@@ -62,6 +56,17 @@ class NCutWeightDataset(Dataset):
             return img.convert('RGB')
 
     def calculate_connection_weights(self, image):
-        # Given 3x224x224 tensor image,
-        image = self.toGrayscale(image)
+        # Given 3x224x224 tensor image calculate w(u,v) for all u, v
+        start = time.time()
+
+        # Convert to brightness map
+        brightness = torch.sum(image, dim=0) / 3 # (224x224)
+        del image
+
+        connection = torch.zeros([brightness.shape, brightness.shape, brightness.shape])
+
+
+
+        elapsed = time.time() - start
+        print(f"Connection-Calculation elapsed: {elapsed}")
         return image

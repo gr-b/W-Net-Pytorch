@@ -48,6 +48,11 @@ val_dataset   = datasets.ImageFolder(os.path.join(config.data_dir, "test"),  val
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=config.batch_size, num_workers=4, shuffle=config.epochShuffle)
 val_dataloader   = torch.utils.data.DataLoader(val_dataset,   batch_size=1, num_workers=4, shuffle=config.epochShuffle)
 
+if True:
+    image, connections = next(iter(train_dataloader))
+    import ipdb; ipdb.set_trace()
+
+
 util.clear_progress_dir()
 
 ###################################

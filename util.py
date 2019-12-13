@@ -30,6 +30,7 @@ def enumerate_params(models):
 
 def transform_to_expected(inputs):
     inputs = [toPIL(img) for img in inputs]
+    outputs_expected = None
     if config.variationalTranslation > 0:
         outputs_expected = torch.stack([toTensor(randomCrop(img)) for img in inputs]).cuda()
     inputs = torch.stack([toTensor(centerCrop(img)) for img in inputs])

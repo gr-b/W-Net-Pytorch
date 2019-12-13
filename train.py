@@ -16,16 +16,14 @@ import time
 import os, shutil
 import copy
 print("PyTorch Version: ",torch.__version__)
-print("Torchvision Version: ",torchvision.__version__)
+#print("Torchvision Version: ",torchvision.__version__) # This stopped working D:
 
 from config import Config
 import util
 from model import WNet
+from weight_data_loader import WeightDataLoader
 
 config = Config()
-
-# NOTE: We're not currently using this variable
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 ###################################
 # Image loading and preprocessing #
@@ -85,8 +83,7 @@ progress_images, progress_expected = util.transform_to_expected(progress_images)
 
 for epoch in range(config.num_epochs):
     running_loss = 0.0
-    for i, data in enumerate(train_dataloader, 0):
-        inputs, labels = data
+    for i, [inputs, labels] in enumerate(train_dataloader, 0):
 
         # Handle variational translation
         inputs, outputs_expected = util.transform_to_expected(inputs)

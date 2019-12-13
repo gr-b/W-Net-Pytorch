@@ -13,4 +13,4 @@ class Config():
         self.epochShuffle = True
         # False if we want to see image progress (but then SGD doesn't work right;
         # same batches every time)
-        self.variationalTranslation = 6 # Pixels, 0 for off.
+        self.variationalTranslation = 3 # Pixels, 0 for off.

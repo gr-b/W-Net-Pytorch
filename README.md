@@ -14,7 +14,10 @@ Make sure the `./datasets/<dataset_name>/` directory is a pointed to in the `con
 
 ## Dependencies
 1. Python 3
-2. Pytorch 
+2. Pytorch
 
 ## Training
 After setting up the dataset, you can run `python3 train.py`. You may want to change the batch size in `config.py`. A single (224x224) image patch takes a bit over 2 gigs of memory. If you don't have a GPU, then you can change a few lines in `train.py` to not say `.cuda()` at the end. I will make this programmatic in the future.
+
+## Notes
+- LayerNorm used instead of BatchNorm so that a smaller batch size can be used.

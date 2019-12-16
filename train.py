@@ -104,7 +104,7 @@ def main():
 
             segmentations, reconstructions = autoencoder(inputs)
 
-            l_soft_n_cut     = soft_n_cut_loss(inputs, segmentations)
+            l_soft_n_cut     = 0#soft_n_cut_loss(inputs, segmentations)
             l_reconstruction = reconstruction_loss(
                 inputs if config.variationalTranslation == 0 else outputs,
                 reconstructions

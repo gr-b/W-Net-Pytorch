@@ -72,27 +72,20 @@ class BaseNet(nn.Module): # 1 U-net
         if not config.useBatchNorm:
             layers = [layer for layer in layers if not isinstance(layer, nn.BatchNorm2d)]
 
-        self.module1 = nn.Sequential(*layers)
+        self.first_module = nn.Sequential(*layers)
 
+        self.pool = nn.MaxPool2d(2, 2)
+        encoder_in_sizes = [64, 128, 256, 512]
+        self.enc_modules = nn.ModuleList(
+            [ConvModule(channels, 2*channels) for channels in encoder_in_sizes])
 
-        self.module12pool = nn.MaxPool2d(2, 2)
-        self.module2 = ConvModule(64, 128)
-        self.module23pool = nn.MaxPool2d(2, 2)
-        self.module3 = ConvModule(128, 256)
-        self.module34pool = nn.MaxPool2d(2, 2)
-        self.module4 = ConvModule(256, 512)
-        self.module45pool = nn.MaxPool2d(2, 2)
-        self.module5 = ConvModule(512, 1024)
-
-        self.module56upconv = nn.ConvTranspose2d(1024, 1024, 2, stride=2) # Stride of 2 makes it the right size
-        self.module6 = ConvModule(1024+512, 512)
-        self.module67upconv = nn.ConvTranspose2d(512, 512, 2, stride=2)
-        self.module7 = ConvModule(512+256, 256)
-        self.module78upconv = nn.ConvTranspose2d(256, 256, 2, stride=2)
-        self.module8 = ConvModule(256+128, 128)
-
-        self.module89upconv = nn.ConvTranspose2d(128, 128, 2, stride=2)
-
+        decoder_in_sizes = [1024, 512, 256]
+        decoder_out_sizes = [512, 256, 128]
+        self.dec_transpose_layers = nn.ModuleList(
+            [nn.ConvTranspose2d(channels, channels, 2, stride=2) for channels in decoder_in_sizes]) # Stride of 2 makes it right size
+        self.dec_modules = nn.ModuleList(
+            [ConvModule(3*channels_out, channels_out) for channels_out in decoder_out_sizes])
+        self.last_dec_transpose_layer = nn.ConvTranspose2d(128, 128, 2, stride=2)
 
         layers = [
             nn.Conv2d(128+64, 64, 3, padding=1),
@@ -108,30 +101,26 @@ class BaseNet(nn.Module): # 1 U-net
         if not config.useBatchNorm:
             layers = [layer for layer in layers if not isinstance(layer, nn.BatchNorm2d)]
 
-        self.module9 = nn.Sequential(*layers)
+        self.last_module = nn.Sequential(*layers)
 
 
     def forward(self, x):
-        x1 = self.module1(x)
-        x2 = self.module2(self.module12pool(x1))
-        x3 = self.module3(self.module23pool(x2))
-        x4 = self.module4(self.module34pool(x3))
-        x5 = self.module5(self.module45pool(x4))
+        x1 = self.first_module(x)
+        activations = [x1]
+        for module in self.enc_modules:
+            activations.append(module(self.pool(activations[-1])))
 
-        x6 = self.module6(
-            torch.cat((x4, self.module56upconv(x5)), 1)
-        )
-        x7 = self.module7(
-            torch.cat((x3, self.module67upconv(x6)), 1)
-        )
-        x8 = self.module8(
-            torch.cat((x2, self.module78upconv(x7)), 1)
-        )
-        x9 = self.module9(
-            torch.cat((x1, self.module89upconv(x8)), 1)
-        )
+        x_ = activations.pop(-1)
 
-        segmentations = x9
+        for conv, upconv in zip(self.dec_modules, self.dec_transpose_layers):
+            skip_connection = activations.pop(-1)
+            x_ = conv(
+                torch.cat((skip_connection, upconv(x_)), 1)
+            )
+
+        segmentations = self.last_module(
+            torch.cat((activations[-1], self.last_dec_transpose_layer(x_)), 1)
+        )
         return segmentations
 
 

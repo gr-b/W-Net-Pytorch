@@ -1,6 +1,6 @@
 class Config():
     def __init__(self):
-        self.debug = False
+        self.debug = True
         self.input_size = 224 # 224x224 pixels
         self.batch_size = 1 # Batch size of patches Note: 11 gig gpu will max batch of 5
         self.k = 4 # Number of classes

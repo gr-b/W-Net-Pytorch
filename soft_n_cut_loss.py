@@ -23,18 +23,12 @@ config = Config()
 
 def soft_n_cut_loss(inputs, segmentations):
     # We don't do n_cut_loss batch wise -- split it up and do it instance wise
-    #inputs = inputs.cpu()
-    #segmentations = segmentations.cpu()
-    inputs = torch.rand((config.batch_size, 3, 128, 128))
-    segmentations = torch.rand((config.batch_size, config.k, 128, 128))
-    config.input_size = 128
-
     loss = 0
     for i in range(inputs.shape[0]):
         flatten_image = torch.mean(inputs[i], dim=0)
         flatten_image = flatten_image.reshape(flatten_image.shape[0]**2)
         loss += soft_n_cut_loss_(flatten_image, segmentations[i], config.k, config.input_size, config.input_size)
-    loss = loss / torch.float(input.shape[0])
+    loss = loss / inputs.shape[0]
     return loss
 
 def soft_n_cut_loss_(flatten_image, prob, k, rows, cols):

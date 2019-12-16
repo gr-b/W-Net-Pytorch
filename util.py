@@ -6,7 +6,7 @@ from torchvision import transforms
 config = Config()
 
 # Clear progress images directory
-def clear_progress_dir():
+def clear_progress_dir(): # Or make the dir if it does not exist
     if not os.path.isdir(config.segmentationProgressDir):
         os.mkdir(config.segmentationProgressDir)
     else: # Clear the directory

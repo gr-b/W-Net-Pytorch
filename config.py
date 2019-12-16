@@ -1,8 +1,9 @@
 class Config():
     def __init__(self):
+        self.debug = False
         self.input_size = 224 # 224x224 pixels
         self.batch_size = 1 # Batch size of patches Note: 11 gig gpu will max batch of 5
-        self.k = 48 # Number of classes
+        self.k = 4 # Number of classes
         self.num_epochs = 250#250 for real
         self.data_dir = "./datasets/BSDS300/images/" # Directory of images
         self.showdata = False # Debug the data augmentation by showing the data we're training on.

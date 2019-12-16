@@ -55,9 +55,12 @@ util.clear_progress_dir()
 #          Model Setup            #
 ###################################
 
-autoencoder = WNet().cuda()
+autoencoder = WNet()
+if torch.cuda.is_available():
+    autoencoder = autoencoder.cuda()
 optimizer = torch.optim.Adam(autoencoder.parameters())
-print(autoencoder)
+if config.debug:
+    print(autoencoder)
 util.enumerate_params([autoencoder])
 
 
@@ -90,15 +93,15 @@ for epoch in range(config.num_epochs):
             plt.imshow(inputs[0].permute(1, 2, 0))
             plt.show()
 
-        inputs  = inputs.cuda()
-        outputs = outputs.cuda()
+        if torch.cuda.is_available():
+            inputs  = inputs.cuda()
+            outputs = outputs.cuda()
 
         optimizer.zero_grad()
 
         segmentations, reconstructions = autoencoder(inputs)
 
-
-        l_soft_n_cut     = soft_n_cut_loss(inputs, segmentations)
+        l_soft_n_cut     = 0#soft_n_cut_loss(inputs, segmentations)
         l_reconstruction = reconstruction_loss(
             inputs if config.variationalTranslation == 0 else outputs,
             reconstructions
@@ -112,7 +115,10 @@ for epoch in range(config.num_epochs):
         running_loss += loss.item()
 
         if config.showSegmentationProgress and i == 0: # If first batch in epoch
-            segmentations, reconstructions = autoencoder(progress_images.cuda())
+            if not torch.cuda.is_available():
+                segmentations, reconstructions = autoencoder(progress_images)
+            else:
+                segmentations, reconstructions = autoencoder(progress_images)
             optimizer.zero_grad() # Don't change gradient on test image
 
             # Get the first example from the batch.

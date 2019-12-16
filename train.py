@@ -114,7 +114,7 @@ def main():
             loss.backward(retain_graph=True)
             optimizer.step()
 
-            if i%2 is 0:
+            if i%10 is 0:
                 print(i)
 
             # print statistics

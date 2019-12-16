@@ -57,7 +57,8 @@ class ConvModule(nn.Module):
         return self.module(x)
 
 class BaseNet(nn.Module): # 1 U-net
-    def __init__(self, input_channels, output_channels):
+    def __init__(self, input_channels=3,
+    encoder=[64, 128, 256, 512], decoder=[1024, 512, 256], output_channels=config.k):
         super(BaseNet, self).__init__()
 
         layers = [
@@ -74,15 +75,15 @@ class BaseNet(nn.Module): # 1 U-net
 
         self.first_module = nn.Sequential(*layers)
 
-        self.pool = nn.MaxPool2d(2, 2)
-        encoder_in_sizes = [64, 128, 256, 512]
-        self.enc_modules = nn.ModuleList(
-            [ConvModule(channels, 2*channels) for channels in encoder_in_sizes])
 
-        decoder_in_sizes = [1024, 512, 256]
-        decoder_out_sizes = [512, 256, 128]
+        self.pool = nn.MaxPool2d(2, 2)
+        self.enc_modules = nn.ModuleList(
+            [ConvModule(channels, 2*channels) for channels in encoder])
+
+
+        decoder_out_sizes = [int(x/2) for x in decoder]
         self.dec_transpose_layers = nn.ModuleList(
-            [nn.ConvTranspose2d(channels, channels, 2, stride=2) for channels in decoder_in_sizes]) # Stride of 2 makes it right size
+            [nn.ConvTranspose2d(channels, channels, 2, stride=2) for channels in decoder]) # Stride of 2 makes it right size
         self.dec_modules = nn.ModuleList(
             [ConvModule(3*channels_out, channels_out) for channels_out in decoder_out_sizes])
         self.last_dec_transpose_layer = nn.ConvTranspose2d(128, 128, 2, stride=2)
@@ -128,9 +129,11 @@ class WNet(nn.Module):
     def __init__(self):
         super(WNet, self).__init__()
 
-        self.U_encoder = BaseNet(input_channels=3, output_channels=config.k)
+        self.U_encoder = BaseNet(input_channels=3, encoder=[64, 128, 256, 512],
+                                    decoder=[1024, 512, 256], output_channels=config.k)
         self.softmax = nn.Softmax2d()
-        self.U_decoder = BaseNet(input_channels=config.k, output_channels=3)
+        self.U_decoder = BaseNet(input_channels=config.k, encoder=[64, 128, 256, 512],
+                                    decoder=[1024, 512, 256], output_channels=3)
         self.sigmoid = nn.Sigmoid()
 
     def forward_encoder(self, x):

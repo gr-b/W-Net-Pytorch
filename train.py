@@ -43,9 +43,9 @@ def main():
         transforms.ToTensor()
     ])
     val_xform = transforms.Compose([                # NOTE: Take varTran out for
-        transforms.RandomCrop(224),
+        transforms.CenterCrop(224),
         transforms.Resize(128),
-        transforms.RandomCrop(config.input_size+config.variationalTranslation), # For now, cropping down to 224
+        transforms.CenterCrop(config.input_size+config.variationalTranslation), # For now, cropping down to 224
         transforms.ToTensor()
     ])
 

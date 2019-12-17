@@ -21,3 +21,8 @@ After setting up the dataset, you can run `python3 train.py`. You may want to ch
 
 ## Notes
 - LayerNorm used instead of BatchNorm so that a smaller batch size can be used.
+
+# TODO:
+1. Add evaluation metrics for evaluation dataset
+2. Show batch size number of images each epoch
+3. Show the same image every time so that comparison is useful

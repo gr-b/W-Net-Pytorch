@@ -19,6 +19,9 @@ We halve the number of feature channels at each upsampling step
 '''
 
 # NOTE: batch norm is up for debate
+# We want batch norm if possible, but the batch size is too low to benefit
+# So instead we do instancenorm
+
 # Note: Normalization should go before ReLU
 
 # Padding=1 because (3x3) conv leaves of 2pixels in each dimension, 1 on each side
@@ -32,18 +35,18 @@ class ConvModule(nn.Module):
         layers = [
             nn.Conv2d(input_dim, output_dim, 1), # Pointwise (1x1) through all channels
             nn.Conv2d(output_dim, output_dim, 3, padding=1, groups=output_dim), # Depthwise (3x3) through each channel
-            nn.BatchNorm2d(output_dim),
+            nn.InstanceNorm2d(output_dim),#nn.BatchNorm2d(output_dim),
             nn.ReLU(),
-            nn.Dropout(),
+            nn.Dropout(config.drop),
             nn.Conv2d(output_dim, output_dim, 1),
             nn.Conv2d(output_dim, output_dim, 3, padding=1, groups=output_dim),
-            nn.BatchNorm2d(output_dim),
+            nn.InstanceNorm2d(output_dim),#nn.BatchNorm2d(output_dim),
             nn.ReLU(),
-            nn.Dropout(),
+            nn.Dropout(config.drop),
         ]
 
-        if not config.useBatchNorm:
-            layers = [layer for layer in layers if not isinstance(layer, nn.BatchNorm2d)]
+        if not config.useNorm:
+            layers = [layer for layer in layers if not isinstance(layer, nn.InstanceNorm2d)]
         if not config.useDropout:
             layers = [layer for layer in layers if not isinstance(layer, nn.Dropout)]
 
@@ -59,18 +62,18 @@ class BaseNet(nn.Module): # 1 U-net
 
         layers = [
             nn.Conv2d(input_channels, 64, 3, padding=1),
-            nn.BatchNorm2d(64),
+            nn.InstanceNorm2d(64),#nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.Dropout(),
+            nn.Dropout(config.drop),
 
             nn.Conv2d(64, 64, 3, padding=1),
-            nn.BatchNorm2d(64),
+            nn.InstanceNorm2d(64), #nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.Dropout(),
+            nn.Dropout(config.drop),
         ]
 
-        if not config.useBatchNorm:
-            layers = [layer for layer in layers if not isinstance(layer, nn.BatchNorm2d)]
+        if not config.useNorm:
+            layers = [layer for layer in layers if not isinstance(layer, nn.InstanceNorm2d)]
         if not config.useDropout:
             layers = [layer for layer in layers if not isinstance(layer, nn.Dropout)]
 
@@ -91,21 +94,21 @@ class BaseNet(nn.Module): # 1 U-net
 
         layers = [
             nn.Conv2d(128+64, 64, 3, padding=1),
-            nn.BatchNorm2d(64),
+            nn.InstanceNorm2d(64),#nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.Dropout(),
+            nn.Dropout(config.drop),
 
             nn.Conv2d(64, 64, 3, padding=1),
-            nn.BatchNorm2d(64),
+            nn.InstanceNorm2d(64),#nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.Dropout(),
+            nn.Dropout(config.drop),
 
             nn.Conv2d(64, output_channels, 1), # No padding on pointwise
             nn.ReLU(),
         ]
 
-        if not config.useBatchNorm:
-            layers = [layer for layer in layers if not isinstance(layer, nn.BatchNorm2d)]
+        if not config.useNorm:
+            layers = [layer for layer in layers if not isinstance(layer, nn.InstanceNorm2d)]
         if not config.useDropout:
             layers = [layer for layer in layers if not isinstance(layer, nn.Dropout)]
 

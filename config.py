@@ -8,8 +8,9 @@ class Config():
         self.data_dir = "./datasets/BSDS300/images/" # Directory of images
         self.showdata = False # Debug the data augmentation by showing the data we're training on.
 
-        self.useBatchNorm = True
+        self.useNorm = True # Instance Normalization
         self.useDropout = True
+        self.drop = 0.2
 
         self.showSegmentationProgress = True
         self.segmentationProgressDir = './latent_images/'

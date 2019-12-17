@@ -119,7 +119,7 @@ def main():
             loss.backward(retain_graph=False) # We only need to do retain graph =true if we're backpropping from multiple heads
             optimizer.step()
 
-            if config.debug and i%100 is 0:
+            if config.debug and (i%50) == 0:
                 print(i)
 
             # print statistics

@@ -1,7 +1,7 @@
 class Config():
     def __init__(self):
         self.debug = True
-        self.input_size = 224 # 224x224 pixels
+        self.input_size = 96 # Side length of square image patch
         self.batch_size = 1 # Batch size of patches Note: 11 gig gpu will max batch of 5
         self.k = 4 # Number of classes
         self.num_epochs = 250#250 for real
@@ -14,5 +14,3 @@ class Config():
         # False if we want to see image progress (but then SGD doesn't work right;
         # same batches every time)
         self.variationalTranslation = 0 # Pixels, 0 for off. 1 works fine
-
-        self.radius = 4 # Not sure how to use radius, or what it is yet.

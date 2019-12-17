@@ -4,10 +4,6 @@ from config import Config
 
 config = Config()
 
-class Flatten(nn.Module):
-    def forward(self, input):
-        return input.view(input.size(0), -1)
-
 ''' Each module consists of two 3 x 3 conv layers, each followed by a ReLU
 non-linearity and batch normalization.
 
@@ -24,14 +20,10 @@ We halve the number of feature channels at each upsampling step
 
 # NOTE: batch norm is up for debate
 
-# NOTE: introducing skip-connections increases the number of channels into each module (I think)
-
 # Padding=1 because (3x3) conv leaves of 2pixels in each dimension, 1 on each side
 # Do we want non-linearity between pointwise and depthwise (separable) conv?
 # Do we want non-linearity after upconv?
 
-# Note: I manually make each conv layer take half as many channels to accommodate the skip-connections
-# As opposed to convolving down the number of channels in the forward pass first. I think this is how it is intended
 
 class ConvModule(nn.Module):
     def __init__(self, input_dim, output_dim):
@@ -129,11 +121,11 @@ class WNet(nn.Module):
     def __init__(self):
         super(WNet, self).__init__()
 
-        self.U_encoder = BaseNet(input_channels=3, encoder=[64, 128, 256, 512],
-                                    decoder=[1024, 512, 256], output_channels=config.k)
+        self.U_encoder = BaseNet(input_channels=3, encoder=[64, 128, 256],
+                                    decoder=[512, 256], output_channels=config.k)
         self.softmax = nn.Softmax2d()
-        self.U_decoder = BaseNet(input_channels=config.k, encoder=[64, 128, 256, 512],
-                                    decoder=[1024, 512, 256], output_channels=3)
+        self.U_decoder = BaseNet(input_channels=config.k, encoder=[64, 128, 256],
+                                    decoder=[512, 256], output_channels=3)
         self.sigmoid = nn.Sigmoid()
 
     def forward_encoder(self, x):

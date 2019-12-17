@@ -44,7 +44,7 @@ def soft_n_cut_loss_(flatten_image, prob, k, rows, cols):
     '''
 
     soft_n_cut_loss = k
-    weights = edge_weights(flatten_image, rows ,cols)
+    weights = edge_weights(flatten_image, rows,cols)
 
     for t in range(k):
         soft_n_cut_loss = soft_n_cut_loss - (numerator(prob[t,:,],weights)/denominator(prob[t,:,:],weights))
@@ -66,16 +66,16 @@ def edge_weights(flatten_image, rows, cols, std_intensity=3, std_position=1, rad
     Used parameters :
     n : number of pixels
     '''
-    A = outer_product(flatten_image, torch.ones_like(flatten_image, dtype=torch.float))
+    A = outer_product(flatten_image, torch.ones_like(flatten_image, dtype=torch.float).cuda())
     A_T = torch.t(A)
     d = torch.div((A - A_T), std_intensity)
     intensity_weight = torch.exp(-1*torch.mul(d, d))
 
     xx, yy = torch.meshgrid(torch.arange(rows, dtype=torch.float), torch.arange(cols, dtype=torch.float))
-    xx = xx.reshape(rows*cols)
-    yy = yy.reshape(rows*cols)
-    A_x = outer_product(xx, torch.ones_like(xx, dtype=torch.float))
-    A_y = outer_product(yy, torch.ones_like(yy, dtype=torch.float))
+    xx = xx.reshape(rows*cols).cuda()
+    yy = yy.reshape(rows*cols).cuda()
+    A_x = outer_product(xx, torch.ones_like(xx, dtype=torch.float).cuda())
+    A_y = outer_product(yy, torch.ones_like(yy, dtype=torch.float).cuda())
 
     xi_xj = A_x - torch.t(A_x)
     yi_yj = A_y - torch.t(A_y)

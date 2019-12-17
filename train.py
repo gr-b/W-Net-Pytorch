@@ -33,13 +33,14 @@ def main():
     # Image loading and preprocessing #
     ###################################
 
+    #TODO: Maybe we should crop a large square, then resize that down to our patch size?
     # For now, data augmentation must not introduce any missing pixels TODO: Add data augmentation noise
     train_xform = transforms.Compose([
         transforms.RandomCrop(config.input_size+config.variationalTranslation), # For now, cropping down to 224
         transforms.RandomHorizontalFlip(), # TODO: Add colorjitter, random erasing
         transforms.ToTensor()
     ])
-    val_xform = transforms.Compose([                # NOTE: Take varTran out for testing
+    val_xform = transforms.Compose([                # NOTE: Take varTran out for 
         transforms.RandomCrop(config.input_size+config.variationalTranslation), # For now, cropping down to 224
         transforms.ToTensor()
     ])
@@ -104,17 +105,17 @@ def main():
 
             segmentations, reconstructions = autoencoder(inputs)
 
-            l_soft_n_cut     = 0#soft_n_cut_loss(inputs, segmentations)
+            l_soft_n_cut     = soft_n_cut_loss(inputs, segmentations)
             l_reconstruction = reconstruction_loss(
                 inputs if config.variationalTranslation == 0 else outputs,
                 reconstructions
             )
 
             loss = (l_reconstruction + l_soft_n_cut)
-            loss.backward(retain_graph=True)
+            loss.backward(retain_graph=False) # We only need to do retain graph =true if we're backpropping from multiple heads
             optimizer.step()
 
-            if i%10 is 0:
+            if config.debug and i%100 is 0:
                 print(i)
 
             # print statistics

@@ -54,8 +54,8 @@ def main():
     train_dataset = AutoencoderDataset("train", train_xform)
     val_dataset   = AutoencoderDataset("test", val_xform)
 
-    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=config.batch_size, num_workers=4, shuffle=config.epochShuffle)
-    val_dataloader   = torch.utils.data.DataLoader(val_dataset,   batch_size=1, num_workers=4, shuffle=config.epochShuffle)
+    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=config.batch_size, num_workers=4, shuffle=True)
+    val_dataloader   = torch.utils.data.DataLoader(val_dataset,   batch_size=1, num_workers=4, shuffle=True)
 
     util.clear_progress_dir()
 

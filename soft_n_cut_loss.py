@@ -66,16 +66,28 @@ def edge_weights(flatten_image, rows, cols, std_intensity=3, std_position=1, rad
     Used parameters :
     n : number of pixels
     '''
-    A = outer_product(flatten_image, torch.ones_like(flatten_image, dtype=torch.float).cuda())
+    ones = torch.ones_like(flatten_image, dtype=torch.float)
+    if torch.cuda.is_available():
+        ones = ones.cuda()
+
+    A = outer_product(flatten_image, ones)
     A_T = torch.t(A)
     d = torch.div((A - A_T), std_intensity)
     intensity_weight = torch.exp(-1*torch.mul(d, d))
 
     xx, yy = torch.meshgrid(torch.arange(rows, dtype=torch.float), torch.arange(cols, dtype=torch.float))
-    xx = xx.reshape(rows*cols).cuda()
-    yy = yy.reshape(rows*cols).cuda()
-    A_x = outer_product(xx, torch.ones_like(xx, dtype=torch.float).cuda())
-    A_y = outer_product(yy, torch.ones_like(yy, dtype=torch.float).cuda())
+    xx = xx.reshape(rows*cols)
+    yy = yy.reshape(rows*cols)
+    if torch.cuda.is_available():
+        xx = xx.cuda()
+        yy = yy.cuda()
+    ones_xx = torch.ones_like(xx, dtype=torch.float)
+    ones_yy = torch.ones_like(yy, dtype=torch.float)
+    if torch.cuda.is_available():
+        ones_yy = ones_yy.cuda()
+        ones_xx = ones_xx.cuda()
+    A_x = outer_product(xx, ones_xx)
+    A_y = outer_product(yy, ones_yy)
 
     xi_xj = A_x - torch.t(A_x)
     yi_yj = A_y - torch.t(A_y)

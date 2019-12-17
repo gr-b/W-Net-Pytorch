@@ -36,11 +36,15 @@ def main():
     #TODO: Maybe we should crop a large square, then resize that down to our patch size?
     # For now, data augmentation must not introduce any missing pixels TODO: Add data augmentation noise
     train_xform = transforms.Compose([
+        transforms.RandomCrop(224),
+        transforms.Resize(128),
         transforms.RandomCrop(config.input_size+config.variationalTranslation), # For now, cropping down to 224
         transforms.RandomHorizontalFlip(), # TODO: Add colorjitter, random erasing
         transforms.ToTensor()
     ])
-    val_xform = transforms.Compose([                # NOTE: Take varTran out for 
+    val_xform = transforms.Compose([                # NOTE: Take varTran out for
+        transforms.RandomCrop(224),
+        transforms.Resize(128),
         transforms.RandomCrop(config.input_size+config.variationalTranslation), # For now, cropping down to 224
         transforms.ToTensor()
     ])

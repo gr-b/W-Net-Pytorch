@@ -7,7 +7,10 @@ class Config():
         self.num_epochs = 250#250 for real
         self.data_dir = "./datasets/BSDS300/images/" # Directory of images
         self.showdata = False # Debug the data augmentation by showing the data we're training on.
+
         self.useBatchNorm = True
+        self.useDropout = True
+
         self.showSegmentationProgress = True
         self.segmentationProgressDir = './latent_images/'
         self.epochShuffle = True

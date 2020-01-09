@@ -124,25 +124,10 @@ def main():
             # print statistics
             running_loss += loss.item()
 
+
             if config.showSegmentationProgress and i == 0: # If first batch in epoch
-                if not torch.cuda.is_available():
-                    segmentations, reconstructions = autoencoder(progress_images)
-                else:
-                    segmentations, reconstructions = autoencoder(progress_images.cuda())
-                optimizer.zero_grad() # Don't change gradient on test image
-
-                # Get the first example from the batch.
-                segmentation = segmentations[0]
-                pixels = torch.argmax(segmentation, axis=0).float() / config.k # to [0,1]
-
-                f, axes = plt.subplots(4, 1, figsize=(8,8))
-                axes[0].imshow(progress_images[0].permute(1, 2, 0))
-                axes[1].imshow(pixels.detach().cpu())
-                axes[2].imshow(reconstructions[0].detach().cpu().permute(1, 2, 0))
-                if config.variationalTranslation:
-                    axes[3].imshow(progress_expected[0].detach().cpu().permute(1, 2, 0))
-                plt.savefig(os.path.join(config.segmentationProgressDir, str(epoch)+".png"))
-                plt.close(f)
+                util.save_progress_image(autoencoder, progress_images, epoch)
+                optimizer.zero_grad() # Don't change gradient on validation
 
         epoch_loss = running_loss / len(train_dataloader.dataset)
         print(f"Epoch {epoch} loss: {epoch_loss:.6f}")

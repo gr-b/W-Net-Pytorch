@@ -2,14 +2,14 @@ class Config():
     def __init__(self):
         self.debug = True
         self.input_size = 96 # Side length of square image patch
-        self.batch_size = 2 # Batch size of patches Note: 11 gig gpu will max batch of 5
-        self.k = 64 # Number of classes
+        self.batch_size = 1 # Batch size of patches Note: 11 gig gpu will max batch of 5
+        self.k = 4 # Number of classes
         self.num_epochs = 250#250 for real
         self.data_dir = "./datasets/BSDS300/images/" # Directory of images
         self.showdata = False # Debug the data augmentation by showing the data we're training on.
 
         self.useInstanceNorm = True # Instance Normalization
-        self.useBatchNorm = False # Only use one
+        self.useBatchNorm = False # Only use one of either instance or batch norm
         self.useDropout = True
         self.drop = 0.2
 

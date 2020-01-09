@@ -42,15 +42,14 @@ def main():
         transforms.RandomHorizontalFlip(), # TODO: Add colorjitter, random erasing
         transforms.ToTensor()
     ])
-    val_xform = transforms.Compose([                # NOTE: Take varTran out for
+    val_xform = transforms.Compose([
         transforms.CenterCrop(224),
         transforms.Resize(128),
-        transforms.CenterCrop(config.input_size+config.variationalTranslation), # For now, cropping down to 224
+        transforms.CenterCrop(config.input_size),
         transforms.ToTensor()
     ])
 
-    #TODO: Load segmentation maps too
-    #train_dataset = datasets.ImageFolder(os.path.join(config.data_dir, "train"), train_xform)
+    #TODO: Load validation segmentation maps too  (for evaluation purposes)
     train_dataset = AutoencoderDataset("train", train_xform)
     val_dataset   = AutoencoderDataset("test", val_xform)
 

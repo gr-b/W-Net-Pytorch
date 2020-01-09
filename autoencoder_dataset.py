@@ -40,10 +40,8 @@ class AutoencoderDataset(Dataset):
 
         input = toPIL(input)
         output = input.copy()
-        print(f"self.mode: {self.mode}| variationalTranslation: {config.variationalTranslation}")
-        if self.mode is "train" and config.variationalTranslation > 0:
+        if self.mode == "train" and config.variationalTranslation > 0:
             output = randomCrop(input)
-            print(f"SIZE!: {output.shape}")
         input = toTensor(centerCrop(input))
         output = toTensor(output)
 

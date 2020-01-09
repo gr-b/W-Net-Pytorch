@@ -23,21 +23,28 @@ def enumerate_params(models):
 				num_params += param.numel()
 	print(f"Total trainable model parameters: {num_params}")
 
+def save_model(autoencoder, modelName):
+    path = os.path.join("./models/", modelName.replace(":", " ").replace(".", " ").replace(" ", "_"))
+    torch.save(autoencoder, path)
+    with open(path+".config", "a+") as f:
+        f.write(str(config))
+        f.close()
+
 def save_progress_image(autoencoder, progress_images, epoch):
     if not torch.cuda.is_available():
         segmentations, reconstructions = autoencoder(progress_images)
     else:
         segmentations, reconstructions = autoencoder(progress_images.cuda())
 
-    # Get the first example from the batch.
-    segmentation = segmentations[0]
-    pixels = torch.argmax(segmentation, axis=0).float() / config.k # to [0,1]
+    f, axes = plt.subplots(4, config.val_batch_size, figsize=(8,8))
+    for i in range(config.val_batch_size):
+        segmentation = segmentations[i]
+        pixels = torch.argmax(segmentation, axis=0).float() / config.k # to [0,1]
 
-    f, axes = plt.subplots(4, 1, figsize=(8,8))
-    axes[0].imshow(progress_images[0].permute(1, 2, 0))
-    axes[1].imshow(pixels.detach().cpu())
-    axes[2].imshow(reconstructions[0].detach().cpu().permute(1, 2, 0))
-    if config.variationalTranslation:
-        axes[3].imshow(progress_expected[0].detach().cpu().permute(1, 2, 0))
+        axes[0, i].imshow(progress_images[i].permute(1, 2, 0))
+        axes[1, i].imshow(pixels.detach().cpu())
+        axes[2, i].imshow(reconstructions[i].detach().cpu().permute(1, 2, 0))
+        if config.variationalTranslation:
+            axes[3, i].imshow(progress_expected[i].detach().cpu().permute(1, 2, 0))
     plt.savefig(os.path.join(config.segmentationProgressDir, str(epoch)+".png"))
     plt.close(f)

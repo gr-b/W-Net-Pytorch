@@ -1,4 +1,4 @@
 /datasets/
 /__pycache__/
 /latent_images*/
-/trained_models/
+/models/

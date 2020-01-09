@@ -13,6 +13,7 @@ import torchvision
 from torchvision import datasets, models, transforms
 import matplotlib.pyplot as plt
 import time
+from datetime import datetime
 import os, shutil
 import copy
 
@@ -51,10 +52,10 @@ def main():
 
     #TODO: Load validation segmentation maps too  (for evaluation purposes)
     train_dataset = AutoencoderDataset("train", train_xform)
-    val_dataset   = AutoencoderDataset("test", val_xform)
+    val_dataset   = AutoencoderDataset("val", val_xform)
 
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=config.batch_size, num_workers=4, shuffle=True)
-    val_dataloader   = torch.utils.data.DataLoader(val_dataset,   batch_size=1, num_workers=4, shuffle=True)
+    val_dataloader   = torch.utils.data.DataLoader(val_dataset,   batch_size=4, num_workers=4, shuffle=False)
 
     util.clear_progress_dir()
 
@@ -69,6 +70,9 @@ def main():
     if config.debug:
         print(autoencoder)
     util.enumerate_params([autoencoder])
+
+    # Use the current time to save the model at end of each epoch
+    modelName = str(datetime.now())
 
 
 
@@ -132,7 +136,9 @@ def main():
         epoch_loss = running_loss / len(train_dataloader.dataset)
         print(f"Epoch {epoch} loss: {epoch_loss:.6f}")
 
-    torch.save(autoencoder.state_dict(), "./model.params")
+        if config.saveModel:
+            util.save_model(autoencoder, modelName)
+
 
 
 if __name__ == "__main__":

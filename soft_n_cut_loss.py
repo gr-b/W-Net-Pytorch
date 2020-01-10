@@ -1,4 +1,4 @@
-# From https://github.com/Andrew-booler/W-Net/
+# Some methods in this file ported to Pytorch from https://github.com/Ashish77IITM/W-Net/
 
 import torch
 import torch.nn as nn

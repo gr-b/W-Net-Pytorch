@@ -18,41 +18,35 @@ centerCrop = transforms.CenterCrop(config.input_size)
 toTensor   = transforms.ToTensor()
 toPIL      = transforms.ToPILImage()
 
-# Assumes given data directory (train, val, etc) has a directory called "images"
-# Loads image as both inputs and outputs
-# Applies different transforms to both input and output
-class AutoencoderDataset(Dataset):
-    def __init__(self, mode, input_transforms):
-        self.mode = mode
+# Assumes data directory/mode has a directory called "images" and one called "segmentations"
+# Loads image as input, segmentation as output
+# Transforms are specified in this file
+class EvaluationDataset(Dataset):
+    def __init__(self, mode):
+        self.mode = mode # The "test" directory name
         self.data_path  = os.path.join(config.data_dir, mode)
         self.images_dir = os.path.join(self.data_path, 'images')
+        self.seg_dir    = os.path.join(self.data_path, 'segmentations')
         self.image_list = self.get_image_list()
-        self.transforms = input_transforms
 
     def __len__(self):
         return len(self.image_list)
 
     def __getitem__(self, i):
         # Get the ith item of the dataset
-        filepath = self.image_list[i]
-        input = self.load_pil_image(filepath)
-        input = self.transforms(input)
+        image_filepath, segmentation_filepath = self.image_list[i]
+        image        = self.load_pil_image(image_filepath)
+        segmentation = self.load_segmentation(segmentation_filepath)
 
-        input = toPIL(input)
-        output = input.copy()
-        if self.mode == "train" and config.variationalTranslation > 0:
-            output = randomCrop(input)
-        input = toTensor(centerCrop(input))
-        output = toTensor(output)
-
-        return input, output
+        return toTensor(image), toTensor(segmentation)
 
     def get_image_list(self):
         image_list = []
         for file in os.listdir(self.images_dir):
             if file.endswith(file_ext):
-                path = os.path.join(self.images_dir, file)
-                image_list.append(path)
+                image_path = os.path.join(self.images_dir, file)
+                seg_path   = os.path.join(self.seg_dir,    file.split('.')[0]+'.seg.npy')
+                image_list.append((image_path, seg_path))
         return image_list
 
     def load_pil_image(self, path):
@@ -60,3 +54,6 @@ class AutoencoderDataset(Dataset):
         with open(path, 'rb') as f:
             img = Image.open(f)
             return img.convert('RGB')
+
+    def load_segmentation(self, path):
+        return np.load(path)

@@ -52,50 +52,35 @@ def main():
 
     autoencoder.eval()
 
-    for i, [images, segmentations] in enumerate(evaluation_dataloader, 0):
-        # Chop up each image into config.input_size chunks
-        size = config.input_size
-        for image, seg in zip(images, segmentations):
-            patches = image.unfold(0, 3, 3).unfold(1, size, size).unfold(2, size, size)
-
-        patch_batch = patches.reshape(-1, 3, size, size)
-
+    def combine_patches(image, patches):
         w, h = image[0].shape
         segmentation = torch.zeros(w, h)
         x, y = (0,0) # Start of next patch
-        for seg_patch in patch_batch:
-
+        for patch in patches:
             if y+size > h:
                 y = 0
                 x += size
-
-            segmentation[x:x+size,y:y+size] = seg_patch[0]
+            segmentation[x:x+size,y:y+size] = patch
             y += size
-        plt.imshow(segmentation)
-        plt.show()
+        return segmentation
 
+
+    for i, [images, segmentations] in enumerate(evaluation_dataloader, 0):
+        size = config.input_size
+        for image, seg in zip(images, segmentations):
+            # NOTE: problem - the above won't get all patches, only ones that fit.
+            patches = image.unfold(0, 3, 3).unfold(1, size, size).unfold(2, size, size)
+        patch_batch = patches.reshape(-1, 3, size, size)
 
         seg_batch = autoencoder.forward_encoder(patch_batch)
         seg_batch = torch.argmax(seg_batch, axis=1).float()
-        #Shape: (15, 96, 96)
 
+        segmentation = combine_patches(image, seg_batch)
 
-        w, h = image[0].shape
-        segmentation = torch.zeros(w, h)
-        x, y = (0,0) # Start of next patch
-        for seg_patch in seg_batch:
-
-            if y+size > h:
-                y = 0
-                x += size
-
-            segmentation[x:x+size,y:y+size] = seg_patch
-            y += size
-        plt.imshow(segmentation)
+        f, axes = plt.subplots(1, 2, figsize=(8,8))
+        axes[0].imshow(segmentation)
+        axes[1].imshow(image.permute(1, 2, 0))
         plt.show()
-
-        # Feed each image in as a batch. Reconstruct final image into 1 array
-    #Do this for all images, saving them in memory
 
 
 

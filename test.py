@@ -42,9 +42,8 @@ def main():
     #          Model Setup            #
     ###################################
 
-    autoencoder = WNet() # We will only use .forward_encoder
-    if torch.cuda.is_available():
-        autoencoder = autoencoder.cuda()
+    # We will only use .forward_encoder()
+    autoencoder = torch.load("./models/model", map_location=torch.device('cpu'))
     util.enumerate_params([autoencoder])
 
     ###################################
@@ -54,7 +53,49 @@ def main():
     autoencoder.eval()
 
     for i, [images, segmentations] in enumerate(evaluation_dataloader, 0):
-        import ipdb; ipdb.set_trace()
+        # Chop up each image into config.input_size chunks
+        size = config.input_size
+        for image, seg in zip(images, segmentations):
+            patches = image.unfold(0, 3, 3).unfold(1, size, size).unfold(2, size, size)
+
+        patch_batch = patches.reshape(-1, 3, size, size)
+
+        w, h = image[0].shape
+        segmentation = torch.zeros(w, h)
+        x, y = (0,0) # Start of next patch
+        for seg_patch in patch_batch:
+
+            if y+size > h:
+                y = 0
+                x += size
+
+            segmentation[x:x+size,y:y+size] = seg_patch[0]
+            y += size
+        plt.imshow(segmentation)
+        plt.show()
+
+
+        seg_batch = autoencoder.forward_encoder(patch_batch)
+        seg_batch = torch.argmax(seg_batch, axis=1).float()
+        #Shape: (15, 96, 96)
+
+
+        w, h = image[0].shape
+        segmentation = torch.zeros(w, h)
+        x, y = (0,0) # Start of next patch
+        for seg_patch in seg_batch:
+
+            if y+size > h:
+                y = 0
+                x += size
+
+            segmentation[x:x+size,y:y+size] = seg_patch
+            y += size
+        plt.imshow(segmentation)
+        plt.show()
+
+        # Feed each image in as a batch. Reconstruct final image into 1 array
+    #Do this for all images, saving them in memory
 
 
 

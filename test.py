@@ -64,6 +64,29 @@ def main():
             y += size
         return segmentation
 
+    pixel_count = torch.zeros(config.k, config.k)
+    def count_predicted_pixels(predicted, actual): # Adds to the running count matrix
+        for k in range(config.k):
+            mask = (predicted == k)
+            masked_actual = actual[mask]
+            for i in range(config.k):
+                pixel_count[k][i] += torch.sum(masked_actual == i)
+        return pixel_count
+
+    # Given
+    def convert_prediction(pixel_count, predicted):
+        map = torch.argmax(pixel_count, dim=1)
+        for x in range(predicted.shape[0]):
+            for y in range(predicted.shape[1]):
+                predicted[x,y] = map[predicted[x,y]]
+        return predicted
+
+    def compute_iou(pixel_count, predicted, actual):
+        return 0
+
+    #TODO: Computer mean iou over all images
+    def pixel_accuracy(predicted, actual):
+        return torch.mean((predicted == actual).float())
 
     for i, [images, segmentations] in enumerate(evaluation_dataloader, 0):
         size = config.input_size
@@ -77,10 +100,25 @@ def main():
 
         segmentation = combine_patches(image, seg_batch)
 
-        f, axes = plt.subplots(1, 2, figsize=(8,8))
+        f, axes = plt.subplots(1, 3, figsize=(8,8))
         axes[0].imshow(segmentation)
         axes[1].imshow(image.permute(1, 2, 0))
+        axes[2].imshow(seg[0])
+
+        prediction = segmentation.int()
+        actual     = seg[0].int()
+
+        pixel_count = count_predicted_pixels(prediction, actual)
+        prediction = convert_prediction(pixel_count, prediction)
+
+        #iou = compute_iou(predicted, actual)
+        #print(f"Intersection over union for this image: {iou}")
+        accuracy = pixel_accuracy(prediction, actual)
+        print(f"Pixel Accuracy for this image: {accuracy}")
+
         plt.show()
+
+
 
 
 

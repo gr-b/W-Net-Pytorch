@@ -43,11 +43,14 @@ def main():
     ###################################
 
     # We will only use .forward_encoder()
-    autoencoder = torch.load("./models/model", map_location=torch.device('cpu'))
+    if torch.cuda.is_available():
+        autoencoder = torch.load("./models/model")
+    else:
+        autoencoder = torch.load("./models/model", map_location=torch.device('cpu'))
     util.enumerate_params([autoencoder])
 
     ###################################
-    #          Training Loop          #
+    #          Testing Loop           #
     ###################################
 
     autoencoder.eval()
@@ -64,16 +67,13 @@ def main():
             y += size
         return segmentation
 
-    pixel_count = torch.zeros(config.k, config.k)
-
     # Because this model is unsupervised, our predicted segment labels do not
     # correspond to the actual segment labels.
     # We need to figure out what the best mapping is.
     # To do this, we will just count, for each of our predicted labels,
-    # The number of pixels in each class of actual labels, and take the max
-    # Over all validation images. (Note: multiple predicted labels may correspond to
-    # a single actual class)
-    def count_predicted_pixels(predicted, actual): # Adds to the running count matrix
+    # The number of pixels in each class of actual labels, and take the max in that image
+    def count_predicted_pixels(predicted, actual):
+        pixel_count = torch.zeros(config.k, config.k)
         for k in range(config.k):
             mask = (predicted == k)
             masked_actual = actual[mask]
@@ -95,8 +95,8 @@ def main():
         for k in range(config.k):
             a = (predicted == k).int()
             b = (actual == k).int()
-            if torch.sum(a) < 100:
-                continue # Don't count if the channel doesn't cover enough
+            #if torch.sum(a) < 100:
+            #    continue # Don't count if the channel doesn't cover enough
             intersection += torch.sum(torch.mul(a, b))
             union        += torch.sum(((a + b) > 0).int())
         return intersection.float() / union.float()
@@ -104,42 +104,65 @@ def main():
     def pixel_accuracy(predicted, actual):
         return torch.mean((predicted == actual).float())
 
-
+    iou_sum = 0
+    pixel_accuracy_sum = 0
+    n = 0
+    # Currently, we produce the most generous prediction looking at a single image
     for i, [images, segmentations] in enumerate(evaluation_dataloader, 0):
         size = config.input_size
-        for image, seg in zip(images, segmentations):
-            # NOTE: problem - the above won't get all patches, only ones that fit.
-            patches = image.unfold(0, 3, 3).unfold(1, size, size).unfold(2, size, size)
+        # Assuming batch size of 1 right now
+        image = images[0]
+        target_segmentation = segmentations[0]
+
+        # NOTE: We cut the images down to a multiple of the patch size
+        cut_w = (image[0].shape[0] // size) * size
+        cut_h = (image[0].shape[1] // size) * size
+        image = image[:,0:cut_w,0:cut_h]
+        target_segmentation = target_segmentation[:,0:cut_w,0:cut_h]
+
+        # NOTE: problem - the above won't get all patches, only ones that fit. (Resolved by above cutting code)
+        patches = image.unfold(0, 3, 3).unfold(1, size, size).unfold(2, size, size)
         patch_batch = patches.reshape(-1, 3, size, size)
 
+        if torch.cuda.is_available():
+            patch_batch = patch_batch.cuda()
         seg_batch = autoencoder.forward_encoder(patch_batch)
         seg_batch = torch.argmax(seg_batch, axis=1).float()
 
-        segmentation = combine_patches(image, seg_batch)
+        predicted_segmentation = combine_patches(image, seg_batch)
 
-        f, axes = plt.subplots(1, 3, figsize=(8,8))
-        axes[0].imshow(segmentation)
-        axes[1].imshow(image.permute(1, 2, 0))
-        axes[2].imshow(seg[0])
+        prediction = predicted_segmentation.int()
+        actual     = target_segmentation[0].int()
 
-        prediction = segmentation.int()
-        actual     = seg[0].int()
+        pixel_count = count_predicted_pixels(prediction, actual)
+        prediction = convert_prediction(pixel_count, prediction)
 
-        #pixel_count = count_predicted_pixels(prediction, actual)
-        pixel_count = count_predicted_pixels(actual, actual)
-        #prediction = convert_prediction(pixel_count, prediction)
-        prediction = convert_prediction(pixel_count, actual)
 
         iou = compute_iou(prediction, actual)
-        print(f"Intersection over union for this image: {iou}")
+        iou_sum += iou
         accuracy = pixel_accuracy(prediction, actual)
-        print(f"Pixel Accuracy for this image: {accuracy}")
+        pixel_accuracy_sum += accuracy
+        n += 1
 
-        plt.show()
+        if config.verbose_testing:
+            print(f"Intersection over union for this image: {iou}")
+            print(f"Pixel Accuracy for this image: {accuracy}")
 
+        if config.verbose_testing:
+            f, axes = plt.subplots(1, 5, figsize=(8,8))
+            axes[0].imshow(predicted_segmentation)
+            axes[1].imshow(prediction)
+            axes[2].imshow(image.permute(1, 2, 0))
+            axes[3].imshow(target_segmentation[0])
+            correctness_map = (prediction == target_segmentation)
+            axes[4].imshow(correctness_map[0]) # Yellow = Correct, Purple = wrong
+            plt.show()
 
+        if n % 2 == 0:
+            print(f"{n}")
 
-
+    print(f"Average performance on n={n} validation images:")
+    print(f"mean IoU: {iou_sum/n}   | mean pixel accuracy: {pixel_accuracy_sum/n}")
 
 if __name__ == "__main__":
     main()

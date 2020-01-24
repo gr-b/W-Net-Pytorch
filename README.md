@@ -26,11 +26,3 @@ After setting up the dataset, you can run `python3 train.py`. You may want to ch
   The original image is first randomly cropped to 224x224 (take a random patch),
   then this is resized down to 128x128 (preserving aspect ratio),
   then finally, a random patch of size 96x96 is taken within the 128x128.
-
-
-
-
-NOTE: InstanceNorm might be causing problems --- 21 epochs in 30 minutes
-NOTE: Model suffers heavily from overfitting (checkerboarding), despite dropout (Variational Translation fixes this)
-# TODO:
-1. Add evaluation metrics for evaluation dataset

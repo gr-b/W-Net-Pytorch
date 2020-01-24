@@ -8,6 +8,8 @@ For evaluation, put images and segmentations in folders:
 `./datasets/<dataset_name>/test/images`
 `./datasets/<dataset_name>/test/segmentations`
 
+I recommend using either the BSDS300 dataset or the Pascal VOC.
+
 Each image filename and segmentation filename should correspond.
 
 Make sure the `./datasets/<dataset_name>/` directory is a pointed to in the `config.py` file.

@@ -1,3 +1,6 @@
+# Note: This repository is a work in progress. The architecture is implemented, but the evaluation and post-processing is not complete.
+
+
 # W-Net: A Deep Model for Fully Unsupervised Image Segmentation - Implementation in Pytorch
 Unsupervised Semantic Segmentation - Bottleneck autoencoder architecture with soft n-cut loss
 
